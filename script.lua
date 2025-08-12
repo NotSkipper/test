@@ -83,18 +83,29 @@ local function isNumber(value)
     return typeof(value) == "number"
 end
 
+local function setWalkSpeed(speed)
+    if not isNumber(speed) then return end
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = speed
+    end
+end
+
 local Slider = Tab:CreateSlider({
-   Name = "Speed",
-   Range = {16, 250},  -- Default walk speed is 16, max 250 for safety
-   Increment = 1,
-   Suffix = "Speed",
-   CurrentValue = 16,
-   Flag = "SpeedSlider",
-   Callback = function(Value)
-       if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-           if isNumber(Value) then
-               LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
-           end
-       end
-   end,
+    Name = "Speed",
+    Range = {16, 250},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 16,
+    Flag = "SpeedSlider",
+    Callback = function(Value)
+        -- pcall to catch any unexpected errors
+        local success, err = pcall(function()
+            setWalkSpeed(Value)
+        end)
+        if not success then
+            warn("Failed to set walk speed:", err)
+        end
+    end,
 })
