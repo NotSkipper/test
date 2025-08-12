@@ -79,16 +79,22 @@ local Toggle = Tab:CreateToggle({
    end,
 })
 
+local function isNumber(value)
+    return typeof(value) == "number"
+end
+
 local Slider = Tab:CreateSlider({
    Name = "Speed",
-   Range = {16, 100}, -- Roblox default walk speed is 16
+   Range = {16, 250},  -- Default walk speed is 16, max 250 for safety
    Increment = 1,
    Suffix = "Speed",
    CurrentValue = 16,
    Flag = "SpeedSlider",
    Callback = function(Value)
-       if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-           LocalPlayer.Character.Humanoid.WalkSpeed = Value
+       if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+           if isNumber(Value) then
+               LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+           end
        end
    end,
 })
