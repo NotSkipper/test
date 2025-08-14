@@ -354,7 +354,7 @@ Tab:CreateButton({
         Rayfield:Notify({
             Title = "Steal Best Youtuber",
             Content = "Attempted to steal the best youtuber!",
-            Duration = 2,
+            Duration = 5,
             Image = 4483362458,
         })
     end,
