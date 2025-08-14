@@ -229,97 +229,57 @@ local Button = Tab:CreateButton({
     end,
 })
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
 local Bases = workspace:WaitForChild("Bases")
 local VirtualUser = game:GetService("VirtualUser")
 
-local instantEnabled = true
-
-local function setPromptsInstant(state)
-    for _, prompt in ipairs(workspace:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") then
-            prompt.HoldDuration = state and 0 or 1
-        end
-    end
-end
-
-workspace.DescendantAdded:Connect(function(descendant)
-    if instantEnabled and descendant:IsA("ProximityPrompt") then
-        descendant.HoldDuration = 0
-    end
-end)
-
-setPromptsInstant(instantEnabled)
-
 local function parseMoneyString(moneyStr)
-    local numberPart, suffix = moneyStr:match("([%d%.]+)%s*([KMBkmb]?)")
-    if not numberPart then return 0 end
-
-    local numberValue = tonumber(numberPart) or 0
-    local multiplier = 1
-
+    local num, suffix = moneyStr:match("([%d%.]+)%s*([KMBkmb]?)")
+    if not num then return 0 end
+    local val = tonumber(num) or 0
     suffix = suffix:upper()
-    if suffix == "K" then
-        multiplier = 1e3
-    elseif suffix == "M" then
-        multiplier = 1e6
-    elseif suffix == "B" then
-        multiplier = 1e9
+    if suffix == "K" then val = val * 1e3
+    elseif suffix == "M" then val = val * 1e6
+    elseif suffix == "B" then val = val * 1e9
     end
-
-    return numberValue * multiplier
+    return val
 end
 
 local function findYourBase()
     for _, base in ipairs(Bases:GetChildren()) do
         local config = base:FindFirstChild("Configuration")
-        if config then
-            local playerValue = config:FindFirstChild("Player")
-            if playerValue and playerValue.Value == player then
-                return base
-            end
+        if config and config:FindFirstChild("Player") and config.Player.Value == player then
+            return base
         end
     end
     return nil
 end
 
-local Button = Tab:CreateButton({
-    Name = "Steal Best Youtuber",
-    Callback = function()
-        local yourBase = findYourBase()
-        if not yourBase then
-            warn("Could not find your base!")
-            return
-        end
+local function findBestYoutuber()
+    local yourBase = findYourBase()
+    if not yourBase then return nil, nil end
 
-        print("Your base found:", yourBase.Name)
+    local bestYoutuberModel = nil
+    local bestBase = nil
+    local highestMPS = 0
 
-        local highestMPSValue = 0
-        local bestYoutuberModel = nil
-        local bestBase = nil
-
-        for _, base in ipairs(Bases:GetChildren()) do
-            if base ~= yourBase then
-                local ignoreFolder = base:FindFirstChild("Ignore")
-                if ignoreFolder then
-                    for _, child in ipairs(ignoreFolder:GetChildren()) do
-                        local hrpChild = child:FindFirstChild("HumanoidRootPart")
-                        if hrpChild then
-                            local thingAttachment = hrpChild:FindFirstChild("ThingAttachment")
-                            if thingAttachment then
-                                local youtuberGui = thingAttachment:FindFirstChild("YoutuberGui")
-                                if youtuberGui then
-                                    local moneyLabel = youtuberGui:FindFirstChild("MoneyPerSecond", true)
-                                    if moneyLabel and moneyLabel:IsA("TextLabel") then
-                                        local value = parseMoneyString(moneyLabel.Text)
-                                        if value > highestMPSValue then
-                                            highestMPSValue = value
-                                            bestYoutuberModel = child
-                                            bestBase = base
-                                        end
+    for _, base in ipairs(Bases:GetChildren()) do
+        if base ~= yourBase then
+            local ignoreFolder = base:FindFirstChild("Ignore")
+            if ignoreFolder then
+                for _, youtuberModel in ipairs(ignoreFolder:GetChildren()) do
+                    local hrpChild = youtuberModel:FindFirstChild("HumanoidRootPart")
+                    if hrpChild then
+                        local thingAttachment = hrpChild:FindFirstChild("ThingAttachment")
+                        if thingAttachment then
+                            local youtuberGui = thingAttachment:FindFirstChild("YoutuberGui")
+                            if youtuberGui then
+                                local moneyLabel = youtuberGui:FindFirstChild("MoneyPerSecond", true)
+                                if moneyLabel and moneyLabel:IsA("TextLabel") then
+                                    local val = parseMoneyString(moneyLabel.Text)
+                                    if val > highestMPS then
+                                        highestMPS = val
+                                        bestYoutuberModel = youtuberModel
+                                        bestBase = base
                                     end
                                 end
                             end
@@ -328,71 +288,78 @@ local Button = Tab:CreateButton({
                 end
             end
         end
+    end
 
-        if not bestYoutuberModel then
-            warn("No suitable youtuber found in other bases.")
-            return
-        end
+    return bestBase, bestYoutuberModel
+end
 
-        print("Best youtuber found in base:", bestBase.Name, "Model:", bestYoutuberModel.Name, "MoneyPerSecond:", highestMPSValue)
+local function stealFromBestYoutuber()
+    local bestBase, bestYoutuber = findBestYoutuber()
+    if not bestYoutuber or not bestBase then
+        warn("No youtuber to steal from found.")
+        return
+    end
 
-        local targetHrp = bestYoutuberModel:FindFirstChild("HumanoidRootPart")
-        if not targetHrp then
-            warn("Best youtuber model missing HumanoidRootPart!")
-            return
-        end
+    local yourBase = findYourBase()
+    if not yourBase then
+        warn("Your base not found!")
+        return
+    end
 
-        local attachment = targetHrp:FindFirstChild("Attachment")
-        if not attachment then
-            warn("HumanoidRootPart missing Attachment!")
-            return
-        end
+    local hrpChild = bestYoutuber:FindFirstChild("HumanoidRootPart")
+    local attachment = hrpChild and hrpChild:FindFirstChild("Attachment")
+    if not (hrpChild and attachment) then
+        warn("Best youtuber missing HumanoidRootPart or Attachment.")
+        return
+    end
 
-        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-        if not prompt then
-            warn("No ProximityPrompt found inside Attachment!")
-            hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
-            return
-        end
+    local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+    if not prompt then
+        warn("No ProximityPrompt found for best youtuber.")
+        return
+    end
 
-        -- Teleport instantly to youtuber + 5 studs above
-        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
-        wait(0.2)
+    print("Teleporting to youtuber:", bestYoutuber.Name)
+    hrp.CFrame = hrpChild.CFrame * CFrame.new(0, 5, 0)
+    wait(0.3)
 
-        -- Simulate VirtualUser click to help register prompt interaction
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton1(Vector2.new())
+    -- Interact with prompt the correct way
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton1(Vector2.new())
+    wait(0.2)
 
-        wait(0.2)
+    prompt:InputHoldBegin()
+    wait(0.2)
+    prompt:InputHoldEnd()
 
-        -- Improved prompt interaction with fallback methods
-        if prompt.Trigger then
-            prompt:Trigger(player)
-        elseif prompt.Triggered then
-            prompt.Triggered:Fire(player)
-        else
-            prompt:InputHoldBegin()
-            wait(0.15)
-            prompt:InputHoldEnd()
-        end
+    wait(0.3)
 
-        wait(0.2)
+    -- Teleport back using fallback parts if PrimaryPart missing
+    local teleportBackPart = yourBase.PrimaryPart or yourBase:FindFirstChild("HumanoidRootPart") or yourBase:FindFirstChildWhichIsA("BasePart")
 
-        print("Stole from youtuber!")
+    if teleportBackPart then
+        hrp.CFrame = teleportBackPart.CFrame * CFrame.new(0, 5, 0)
+    else
+        warn("Your base has no suitable part to teleport to!")
+    end
 
-        -- Teleport back to your base + 5 studs above
-        hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
+    print("Steal complete!")
+end
 
-        print("Returned to base.")
-
+-- Rayfield button
+Tab:CreateButton({
+    Name = "Steal Best Youtuber",
+    Callback = function()
+        stealFromBestYoutuber()
         Rayfield:Notify({
             Title = "Steal Best Youtuber",
-            Content = "Successfully stole from "..bestYoutuberModel.Name,
-            Duration = 5,
+            Content = "Attempted to steal the best youtuber!",
+            Duration = 2,
             Image = 4483362458,
         })
     end,
 })
+
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
