@@ -894,50 +894,53 @@ local function parseMoneyString(moneyStr)
     return val * mul
 end
 
--- Create Label
+-- Create the label once
 local labelObject = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255, 255, 255), false)
 
--- Refresh function with debug logs
 spawn(function()
     while true do
         local entries = {}
-        print("Scanning bases...")  -- Debug start
 
         for _, base in ipairs(Bases:GetChildren()) do
-            local ignoreFolder = base:FindFirstChild("Ignore")
-            if ignoreFolder then
-                for _, y in ipairs(ignoreFolder:GetChildren()) do
+            local ignore = base:FindFirstChild("Ignore")
+            if ignore then
+                for _, y in ipairs(ignore:GetChildren()) do
                     local hrp = y:FindFirstChild("HumanoidRootPart")
                     if hrp then
                         local ta = hrp:FindFirstChild("ThingAttachment")
                         if ta then
                             local gui = ta:FindFirstChild("YoutuberGui")
                             if gui then
-                                local nameLbl = gui:FindFirstChild("YoutuberName", true)
-                                local moneyLbl = gui:FindFirstChild("MoneyPerSecond", true)
-                                if nameLbl and moneyLbl and moneyLbl:IsA("TextLabel") then
-                                    local val = parseMoneyString(moneyLbl.Text)
-                                    table.insert(entries, { name = nameLbl.Text, text = moneyLbl.Text, val = val })
-                                    print("Found:", nameLbl.Text, moneyLbl.Text)  -- Debug log
+                                local nameLabelHolder = gui:FindFirstChild("YoutuberName")
+                                local moneyLabelHolder = gui:FindFirstChild("MoneyPerSecond")
+                                
+                                if nameLabelHolder and moneyLabelHolder then
+                                    local nameLabel = nameLabelHolder:FindFirstChild("Text")
+                                    local moneyLabel = moneyLabelHolder:FindFirstChild("Text")
+                                    
+                                    if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
+                                        local val = parseMoneyString(moneyLabel.Text)
+                                        table.insert(entries, {
+                                            name = nameLabel.Text,
+                                            text = moneyLabel.Text,
+                                            val = val
+                                        })
+                                        print("Found:", nameLabel.Text, moneyLabel.Text)
+                                    else
+                                        print("Found GUI but missing 'Text' labels in:", y.Name)
+                                    end
                                 else
-                                    print("Skipping youtuber (missing labels or wrong type):", y.Name)
+                                    print("Missing YoutuberName or MoneyPerSecond in:", y.Name)
                                 end
                             else
                                 print("No YoutuberGui in:", y.Name)
                             end
-                        else
-                            print("No ThingAttachment in:", y.Name)
                         end
-                    else
-                        print("No HumanoidRootPart in:", y.Name)
                     end
                 end
-            else
-                print("No Ignore folder in base:", base.Name)
             end
         end
 
-        -- Format and update label
         local text
         if #entries == 0 then
             text = "Top Youtubers:\n— No data found —"
@@ -951,10 +954,10 @@ spawn(function()
             text = "Top Youtubers:\n" .. table.concat(lines, "\n")
         end
 
-        -- Give UI time to update
+        -- Ensure UI renders
         task.wait()
         labelObject:Set(text)
 
-        task.wait(5)
+        task.wait(5) -- Refresh every 5 seconds
     end
 end)
