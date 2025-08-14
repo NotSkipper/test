@@ -877,14 +877,18 @@ local Dropdown = Tab:CreateDropdown({
 
 local Tab = Window:CreateTab("Server", 0) -- Title, Image
 
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local Bases = workspace:WaitForChild("Bases")
 
+-- Multiplier table up to nonillions
 local suffixMultipliers = {
     [""] = 1, ["K"] = 1e3, ["M"] = 1e6, ["B"] = 1e9,
     ["T"] = 1e12, ["QA"] = 1e15, ["QI"] = 1e18,
-    ["SX"] = 1e21, ["SP"] = 1e24, ["OC"] = 1e27, ["NO"] = 1e30,
+    ["SX"] = 1e21, ["SP"] = 1e24, ["OC"] = 1e27, ["NO"] = 1e30
 }
 
+-- Convert "1.2M" style strings to numbers
 local function parseMoneyString(moneyStr)
     local num, suffix = moneyStr:match("([%d%.]+)%s*([%a]*)")
     if not num then return 0 end
@@ -892,34 +896,48 @@ local function parseMoneyString(moneyStr)
     return val * (suffixMultipliers[suffix:upper()] or 1)
 end
 
--- Create the label once
-local label = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.new(1,1,1), false)
+-- Create Rayfield label once
+local label = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255,255,255), false)
 
--- Auto-refresh loop
+-- Function to get the owner of a base
+local function getBaseOwner(base)
+    local config = base:FindFirstChild("Configuration")
+    if config then
+        local playerValue = config:FindFirstChild("Player")
+        if playerValue and playerValue:IsA("ObjectValue") then
+            return playerValue.Value
+        end
+    end
+    return nil
+end
+
+-- Main loop
 task.spawn(function()
     while true do
         local entries = {}
 
         for _, base in ipairs(Bases:GetChildren()) do
-            local ignore = base:FindFirstChild("Ignore")
-            if ignore then
-                for _, youtuber in ipairs(ignore:GetChildren()) do
-                    local hrp = youtuber:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local ta = hrp:FindFirstChild("ThingAttachment")
-                        if ta then
-                            local gui = ta:FindFirstChild("YoutuberGui")
-                            if gui then
-                                local nameLabel = gui:FindFirstChild("YoutuberName")
-                                local moneyLabel = gui:FindFirstChild("MoneyPerSecond")
-
-                                if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
-                                    local val = parseMoneyString(moneyLabel.Text)
-                                    table.insert(entries, {
-                                        name = nameLabel.Text,
-                                        text = moneyLabel.Text,
-                                        val = val
-                                    })
+            local owner = getBaseOwner(base)
+            if owner and owner ~= LocalPlayer then
+                local ignore = base:FindFirstChild("Ignore")
+                if ignore then
+                    for _, youtuber in ipairs(ignore:GetChildren()) do
+                        local hrp = youtuber:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            local ta = hrp:FindFirstChild("ThingAttachment")
+                            if ta then
+                                local gui = ta:FindFirstChild("YoutuberGui")
+                                if gui then
+                                    local nameLabel = gui:FindFirstChild("YoutuberName")
+                                    local moneyLabel = gui:FindFirstChild("MoneyPerSecond")
+                                    if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
+                                        local val = parseMoneyString(moneyLabel.Text)
+                                        table.insert(entries, {
+                                            name = nameLabel.Text,
+                                            text = moneyLabel.Text,
+                                            val = val
+                                        })
+                                    end
                                 end
                             end
                         end
@@ -928,21 +946,20 @@ task.spawn(function()
             end
         end
 
-        -- Format label text
-        local text = "Top Youtubers:\n"
+        -- Sort & display
+        table.sort(entries, function(a, b) return a.val > b.val end)
+
+        local displayText = "Top Youtubers:\n"
         if #entries == 0 then
-            text = text .. "— No data found —"
+            displayText = displayText .. "— No data found —"
         else
-            table.sort(entries, function(a, b) return a.val > b.val end)
             for i = 1, math.min(5, #entries) do
                 local e = entries[i]
-                text = text .. string.format("%d. %s — %s\n", i, e.name, e.text)
+                displayText = displayText .. string.format("%d. %s — %s\n", i, e.name, e.text)
             end
         end
 
-        -- Update the label
-        label:Set(text)
-
+        label:Set(displayText)
         task.wait(5)
     end
 end)
