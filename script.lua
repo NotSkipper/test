@@ -229,6 +229,7 @@ local Button = Tab:CreateButton({
     end,
 })
 
+local Players = game:GetService("Players")
 local Bases = workspace:WaitForChild("Bases")
 local VirtualUser = game:GetService("VirtualUser")
 
@@ -244,7 +245,7 @@ local function parseMoneyString(moneyStr)
     return val
 end
 
-local function findYourBase()
+local function findYourBase(player)
     for _, base in ipairs(Bases:GetChildren()) do
         local config = base:FindFirstChild("Configuration")
         if config and config:FindFirstChild("Player") and config.Player.Value == player then
@@ -254,10 +255,7 @@ local function findYourBase()
     return nil
 end
 
-local function findBestYoutuber()
-    local yourBase = findYourBase()
-    if not yourBase then return nil, nil end
-
+local function findBestYoutuber(yourBase)
     local bestYoutuberModel = nil
     local bestBase = nil
     local highestMPS = 0
@@ -293,16 +291,19 @@ local function findBestYoutuber()
     return bestBase, bestYoutuberModel
 end
 
-local function stealFromBestYoutuber()
-    local bestBase, bestYoutuber = findBestYoutuber()
-    if not bestYoutuber or not bestBase then
-        warn("No youtuber to steal from found.")
+local function stealFromBestYoutuber(player)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    local yourBase = findYourBase(player)
+    if not yourBase then
+        warn("Your base not found!")
         return
     end
 
-    local yourBase = findYourBase()
-    if not yourBase then
-        warn("Your base not found!")
+    local bestBase, bestYoutuber = findBestYoutuber(yourBase)
+    if not bestYoutuber or not bestBase then
+        warn("No youtuber to steal from found.")
         return
     end
 
@@ -350,15 +351,17 @@ end
 Tab:CreateButton({
     Name = "Steal Best Youtuber",
     Callback = function()
-        stealFromBestYoutuber()
+        local player = Players.LocalPlayer
+        stealFromBestYoutuber(player)
         Rayfield:Notify({
             Title = "Steal Best Youtuber",
-            Content = "Attempted to steal the best youtuber!",
+            Content = "Attempted to steal from best youtuber!",
             Duration = 5,
             Image = 4483362458,
         })
     end,
 })
+
 
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
