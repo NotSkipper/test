@@ -881,14 +881,12 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Bases = workspace:WaitForChild("Bases")
 
--- Multiplier table up to nonillions
 local suffixMultipliers = {
     [""] = 1, ["K"] = 1e3, ["M"] = 1e6, ["B"] = 1e9,
     ["T"] = 1e12, ["QA"] = 1e15, ["QI"] = 1e18,
     ["SX"] = 1e21, ["SP"] = 1e24, ["OC"] = 1e27, ["NO"] = 1e30
 }
 
--- Convert "1.2M" style strings to numbers
 local function parseMoneyString(moneyStr)
     local num, suffix = moneyStr:match("([%d%.]+)%s*([%a]*)")
     if not num then return 0 end
@@ -896,10 +894,6 @@ local function parseMoneyString(moneyStr)
     return val * (suffixMultipliers[suffix:upper()] or 1)
 end
 
--- Create Rayfield label once
-local label = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255,255,255), false)
-
--- Function to get the owner of a base
 local function getBaseOwner(base)
     local config = base:FindFirstChild("Configuration")
     if config then
@@ -911,31 +905,32 @@ local function getBaseOwner(base)
     return nil
 end
 
--- Main loop
+local label = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255,255,255), false)
+
 task.spawn(function()
     while true do
-        local entries = {}
+        local youtubersList = {}
 
         for _, base in ipairs(Bases:GetChildren()) do
             local owner = getBaseOwner(base)
             if owner and owner ~= LocalPlayer then
-                local ignore = base:FindFirstChild("Ignore")
-                if ignore then
-                    for _, youtuber in ipairs(ignore:GetChildren()) do
+                local ignoreFolder = base:FindFirstChild("Ignore")
+                if ignoreFolder then
+                    for _, youtuber in ipairs(ignoreFolder:GetChildren()) do
                         local hrp = youtuber:FindFirstChild("HumanoidRootPart")
                         if hrp then
-                            local ta = hrp:FindFirstChild("ThingAttachment")
-                            if ta then
-                                local gui = ta:FindFirstChild("YoutuberGui")
-                                if gui then
-                                    local nameLabel = gui:FindFirstChild("YoutuberName")
-                                    local moneyLabel = gui:FindFirstChild("MoneyPerSecond")
+                            local thingAttach = hrp:FindFirstChild("ThingAttachment")
+                            if thingAttach then
+                                local youtuberGui = thingAttach:FindFirstChild("YoutuberGui")
+                                if youtuberGui then
+                                    local nameLabel = youtuberGui:FindFirstChild("YoutuberName")
+                                    local moneyLabel = youtuberGui:FindFirstChild("MoneyPerSecond")
                                     if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
                                         local val = parseMoneyString(moneyLabel.Text)
-                                        table.insert(entries, {
+                                        table.insert(youtubersList, {
                                             name = nameLabel.Text,
-                                            text = moneyLabel.Text,
-                                            val = val
+                                            moneyText = moneyLabel.Text,
+                                            value = val
                                         })
                                     end
                                 end
@@ -946,20 +941,19 @@ task.spawn(function()
             end
         end
 
-        -- Sort & display
-        table.sort(entries, function(a, b) return a.val > b.val end)
+        table.sort(youtubersList, function(a, b) return a.value > b.value end)
 
-        local displayText = "Top Youtubers:\n"
-        if #entries == 0 then
-            displayText = displayText .. "— No data found —"
+        local output = "Top Youtubers:\n"
+        if #youtubersList == 0 then
+            output = output .. "No youtubers found."
         else
-            for i = 1, math.min(5, #entries) do
-                local e = entries[i]
-                displayText = displayText .. string.format("%d. %s — %s\n", i, e.name, e.text)
+            for i = 1, math.min(5, #youtubersList) do
+                local yt = youtubersList[i]
+                output = output .. string.format("%d. %s — %s\n", i, yt.name, yt.moneyText)
             end
         end
 
-        label:Set(displayText)
-        task.wait(5)
+        label:Set(output)
+        wait(5)
     end
 end)
