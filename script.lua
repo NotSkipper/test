@@ -361,8 +361,16 @@ local Button = Tab:CreateButton({
             return
         end
 
-        prompt:InputHoldBegin()
-        prompt:InputHoldEnd()
+        -- Improved prompt interaction
+        if prompt.Trigger then
+            prompt:Trigger(player)
+        elseif prompt.Triggered then
+            prompt.Triggered:Fire(player)
+        else
+            prompt:InputHoldBegin()
+            wait(0.15)
+            prompt:InputHoldEnd()
+        end
 
         print("Stole from youtuber!")
 
@@ -378,7 +386,6 @@ local Button = Tab:CreateButton({
         })
     end,
 })
-
 
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
