@@ -889,14 +889,14 @@ local function parseMoneyString(moneyStr)
     local num, suffix = moneyStr:match("([%d%.]+)%s*([%a]*)")
     if not num then return 0 end
     local val = tonumber(num) or 0
-    suffix = suffix:upper()
-    return val * (suffixMultipliers[suffix] or 1)
+    return val * (suffixMultipliers[suffix:upper()] or 1)
 end
 
--- Create label once
-local topLabel = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.new(1,1,1), false)
+-- Create the label once
+local label = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.new(1,1,1), false)
 
-spawn(function()
+-- Auto-refresh loop
+task.spawn(function()
     while true do
         local entries = {}
 
@@ -910,24 +910,16 @@ spawn(function()
                         if ta then
                             local gui = ta:FindFirstChild("YoutuberGui")
                             if gui then
-                                local nameHolder = gui:FindFirstChild("YoutuberName")
-                                local moneyHolder = gui:FindFirstChild("MoneyPerSecond")
-                                if nameHolder and moneyHolder then
-                                    local nameText = nameHolder:FindFirstChild("Text")
-                                    local moneyText = moneyHolder:FindFirstChild("Text")
-                                    if nameText and moneyText and nameText:IsA("TextLabel") and moneyText:IsA("TextLabel") then
-                                        local val = parseMoneyString(moneyText.Text)
-                                        table.insert(entries, {
-                                            name = nameText.Text,
-                                            display = moneyText.Text,
-                                            val = val,
-                                        })
-                                        print("Found:", nameText.Text, moneyText.Text)
-                                    else
-                                        print("Missing inner TextLabel for", youtuber.Name)
-                                    end
-                                else
-                                    print("Missing holder GUI for", youtuber.Name)
+                                local nameLabel = gui:FindFirstChild("YoutuberName")
+                                local moneyLabel = gui:FindFirstChild("MoneyPerSecond")
+
+                                if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
+                                    local val = parseMoneyString(moneyLabel.Text)
+                                    table.insert(entries, {
+                                        name = nameLabel.Text,
+                                        text = moneyLabel.Text,
+                                        val = val
+                                    })
                                 end
                             end
                         end
@@ -936,23 +928,20 @@ spawn(function()
             end
         end
 
-        -- Build display
-        local displayText
+        -- Format label text
+        local text = "Top Youtubers:\n"
         if #entries == 0 then
-            displayText = "Top Youtubers:\n— No data found —"
+            text = text .. "— No data found —"
         else
             table.sort(entries, function(a, b) return a.val > b.val end)
-            local lines = {}
             for i = 1, math.min(5, #entries) do
                 local e = entries[i]
-                table.insert(lines, string.format("%d. %s — %s", i, e.name, e.display))
+                text = text .. string.format("%d. %s — %s\n", i, e.name, e.text)
             end
-            displayText = "Top Youtubers:\n" .. table.concat(lines, "\n")
         end
 
-        -- Ensure UI updates properly
-        task.wait()
-        topLabel:Set(displayText)
+        -- Update the label
+        label:Set(text)
 
         task.wait(5)
     end
