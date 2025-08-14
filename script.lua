@@ -196,6 +196,39 @@ Tab:CreateToggle({
     end,
 })
 
+local Button = Tab:CreateButton({
+    Name = "Enable Anti Idle",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
+
+        local GC = getconnections or get_signal_cons
+        if GC then
+            for _, v in pairs(GC(player.Idled)) do
+                if v["Disable"] then
+                    v["Disable"](v)
+                elseif v["Disconnect"] then
+                    v["Disconnect"](v)
+                end
+            end
+        else
+            local VirtualUser = cloneref(game:GetService("VirtualUser"))
+            player.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
+
+        -- Rayfield notification
+        Rayfield:Notify({
+            Title = "Anti Idle",
+            Content = "Anti Idle has been enabled. You won't get kicked for being afk.",
+            Duration = 6.5,
+            Image = 4483362458,
+        })
+    end,
+})
+
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
