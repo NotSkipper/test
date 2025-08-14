@@ -230,11 +230,9 @@ local Button = Tab:CreateButton({
 })
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
-
 local Bases = workspace:WaitForChild("Bases")
 
 local instantEnabled = true
@@ -275,23 +273,18 @@ local function parseMoneyString(moneyStr)
 end
 
 local function findYourBase()
-    local closestBase = nil
-    local closestDist = math.huge
-
     for _, base in ipairs(Bases:GetChildren()) do
-        local basePos = base.PrimaryPart and base.PrimaryPart.Position or nil
-        if basePos then
-            local dist = (basePos - hrp.Position).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closestBase = base
+        local config = base:FindFirstChild("Configuration")
+        if config then
+            local playerValue = config:FindFirstChild("Player")
+            if playerValue and playerValue.Value == player then
+                return base
             end
         end
     end
-    return closestBase
+    return nil
 end
 
--- Rayfield button:
 local Button = Tab:CreateButton({
     Name = "Steal Best Youtuber",
     Callback = function()
@@ -377,7 +370,6 @@ local Button = Tab:CreateButton({
 
         print("Returned to base.")
 
-        -- Optional notification:
         Rayfield:Notify({
             Title = "Steal Best Youtuber",
             Content = "Successfully stole from "..bestYoutuberModel.Name,
