@@ -229,6 +229,165 @@ local Button = Tab:CreateButton({
     end,
 })
 
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local Bases = workspace:WaitForChild("Bases")
+
+local instantEnabled = true
+
+local function setPromptsInstant(state)
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = state and 0 or 1
+        end
+    end
+end
+
+workspace.DescendantAdded:Connect(function(descendant)
+    if instantEnabled and descendant:IsA("ProximityPrompt") then
+        descendant.HoldDuration = 0
+    end
+end)
+
+setPromptsInstant(instantEnabled)
+
+local function parseMoneyString(moneyStr)
+    local numberPart, suffix = moneyStr:match("([%d%.]+)%s*([KMBkmb]?)")
+    if not numberPart then return 0 end
+
+    local numberValue = tonumber(numberPart) or 0
+    local multiplier = 1
+
+    suffix = suffix:upper()
+    if suffix == "K" then
+        multiplier = 1e3
+    elseif suffix == "M" then
+        multiplier = 1e6
+    elseif suffix == "B" then
+        multiplier = 1e9
+    end
+
+    return numberValue * multiplier
+end
+
+local function findYourBase()
+    local closestBase = nil
+    local closestDist = math.huge
+
+    for _, base in ipairs(Bases:GetChildren()) do
+        local basePos = base.PrimaryPart and base.PrimaryPart.Position or nil
+        if basePos then
+            local dist = (basePos - hrp.Position).Magnitude
+            if dist < closestDist then
+                closestDist = dist
+                closestBase = base
+            end
+        end
+    end
+    return closestBase
+end
+
+-- Rayfield button:
+local Button = Tab:CreateButton({
+    Name = "Steal Best Youtuber",
+    Callback = function()
+        local yourBase = findYourBase()
+        if not yourBase then
+            warn("Could not find your base!")
+            return
+        end
+
+        print("Your base found:", yourBase.Name)
+
+        local highestMPSValue = 0
+        local bestYoutuberModel = nil
+        local bestBase = nil
+
+        for _, base in ipairs(Bases:GetChildren()) do
+            if base ~= yourBase then
+                local ignoreFolder = base:FindFirstChild("Ignore")
+                if ignoreFolder then
+                    for _, child in ipairs(ignoreFolder:GetChildren()) do
+                        local hrpChild = child:FindFirstChild("HumanoidRootPart")
+                        if hrpChild then
+                            local thingAttachment = hrpChild:FindFirstChild("ThingAttachment")
+                            if thingAttachment then
+                                local youtuberGui = thingAttachment:FindFirstChild("YoutuberGui")
+                                if youtuberGui then
+                                    local moneyLabel = youtuberGui:FindFirstChild("MoneyPerSecond", true)
+                                    if moneyLabel and moneyLabel:IsA("TextLabel") then
+                                        local value = parseMoneyString(moneyLabel.Text)
+                                        if value > highestMPSValue then
+                                            highestMPSValue = value
+                                            bestYoutuberModel = child
+                                            bestBase = base
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if not bestYoutuberModel then
+            warn("No suitable youtuber found in other bases.")
+            return
+        end
+
+        print("Best youtuber found in base:", bestBase.Name, "Model:", bestYoutuberModel.Name, "MoneyPerSecond:", highestMPSValue)
+
+        local targetHrp = bestYoutuberModel:FindFirstChild("HumanoidRootPart")
+        if not targetHrp then
+            warn("Best youtuber model missing HumanoidRootPart!")
+            return
+        end
+
+        -- Teleport instantly to youtuber + 5 studs above
+        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
+
+        wait(0.1)
+
+        -- Find the ProximityPrompt on the youtuber model or descendants
+        local prompt = nil
+        for _, descendant in ipairs(bestYoutuberModel:GetDescendants()) do
+            if descendant:IsA("ProximityPrompt") then
+                prompt = descendant
+                break
+            end
+        end
+
+        if not prompt then
+            warn("No ProximityPrompt found on best youtuber model!")
+            hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
+            return
+        end
+
+        prompt:InputHoldBegin()
+        prompt:InputHoldEnd()
+
+        print("Stole from youtuber!")
+
+        hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
+
+        print("Returned to base.")
+
+        -- Optional notification:
+        Rayfield:Notify({
+            Title = "Steal Best Youtuber",
+            Content = "Successfully stole from "..bestYoutuberModel.Name,
+            Duration = 5,
+            Image = 4483362458,
+        })
+    end,
+})
+
+
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
