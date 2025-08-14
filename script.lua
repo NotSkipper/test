@@ -894,59 +894,67 @@ local function parseMoneyString(moneyStr)
     return val * mul
 end
 
--- Creates or updates the top 5 label
-local labelObject
-local function refreshTopYoutubers()
-    local entries = {}
+-- Create Label
+local labelObject = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255, 255, 255), false)
 
-    for _, base in ipairs(Bases:GetChildren()) do
-        local ignoreFolder = base:FindFirstChild("Ignore")
-        if ignoreFolder then
-            for _, y in ipairs(ignoreFolder:GetChildren()) do
-                local hrp = y:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local ta = hrp:FindFirstChild("ThingAttachment")
-                    if ta then
-                        local gui = ta:FindFirstChild("YoutuberGui")
-                        if gui then
-                            local nameLbl = gui:FindFirstChild("YoutuberName", true)
-                            local moneyLbl = gui:FindFirstChild("MoneyPerSecond", true)
-                            if nameLbl and moneyLbl and moneyLbl:IsA("TextLabel") then
-                                local mpsText = moneyLbl.Text
-                                local mpsVal = parseMoneyString(mpsText)
-                                table.insert(entries, { name = nameLbl.Text, text = mpsText, val = mpsVal })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    if #entries == 0 then
-        if labelObject then labelObject:Set("Top Youtubers:\n— No data found —") end
-        return
-    end
-
-    table.sort(entries, function(a, b) return a.val > b.val end)
-
-    local lines = {}
-    for i = 1, math.min(5, #entries) do
-        local e = entries[i]
-        table.insert(lines, string.format("%d. %s — %s", i, e.name, e.text))
-    end
-
-    localtxt = "Top Youtubers:\n" .. table.concat(lines, "\n")
-    if labelObject then labelObject:Set(localtxt) end
-end
-
--- Create the initial label
-labelObject = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255, 255, 255), false)
-
--- Auto-refresh every 5 seconds
+-- Refresh function with debug logs
 spawn(function()
     while true do
-        refreshTopYoutubers()
+        local entries = {}
+        print("Scanning bases...")  -- Debug start
+
+        for _, base in ipairs(Bases:GetChildren()) do
+            local ignoreFolder = base:FindFirstChild("Ignore")
+            if ignoreFolder then
+                for _, y in ipairs(ignoreFolder:GetChildren()) do
+                    local hrp = y:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local ta = hrp:FindFirstChild("ThingAttachment")
+                        if ta then
+                            local gui = ta:FindFirstChild("YoutuberGui")
+                            if gui then
+                                local nameLbl = gui:FindFirstChild("YoutuberName", true)
+                                local moneyLbl = gui:FindFirstChild("MoneyPerSecond", true)
+                                if nameLbl and moneyLbl and moneyLbl:IsA("TextLabel") then
+                                    local val = parseMoneyString(moneyLbl.Text)
+                                    table.insert(entries, { name = nameLbl.Text, text = moneyLbl.Text, val = val })
+                                    print("Found:", nameLbl.Text, moneyLbl.Text)  -- Debug log
+                                else
+                                    print("Skipping youtuber (missing labels or wrong type):", y.Name)
+                                end
+                            else
+                                print("No YoutuberGui in:", y.Name)
+                            end
+                        else
+                            print("No ThingAttachment in:", y.Name)
+                        end
+                    else
+                        print("No HumanoidRootPart in:", y.Name)
+                    end
+                end
+            else
+                print("No Ignore folder in base:", base.Name)
+            end
+        end
+
+        -- Format and update label
+        local text
+        if #entries == 0 then
+            text = "Top Youtubers:\n— No data found —"
+        else
+            table.sort(entries, function(a, b) return a.val > b.val end)
+            local lines = {}
+            for i = 1, math.min(5, #entries) do
+                local e = entries[i]
+                table.insert(lines, string.format("%d. %s — %s", i, e.name, e.text))
+            end
+            text = "Top Youtubers:\n" .. table.concat(lines, "\n")
+        end
+
+        -- Give UI time to update
+        task.wait()
+        labelObject:Set(text)
+
         task.wait(5)
     end
 end)
