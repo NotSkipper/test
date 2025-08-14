@@ -874,3 +874,76 @@ local Dropdown = Tab:CreateDropdown({
         end
     end,
 })
+
+local Tab = Window:CreateTab("Server", 0) -- Title, Image
+
+local Bases = workspace:WaitForChild("Bases")
+
+-- Expand this table as needed
+local suffixMultipliers = {
+    [""] = 1,
+    ["K"] = 1e3,
+    ["M"] = 1e6,
+    ["B"] = 1e9,
+    ["T"] = 1e12,
+    ["QA"] = 1e15,
+    ["QI"] = 1e18,
+    ["SX"] = 1e21,
+    ["SP"] = 1e24,
+    ["OC"] = 1e27,
+    ["NO"] = 1e30,
+}
+
+-- Parses "3M/s", "120Qi/s", etc.
+local function parseMoneyString(moneyStr)
+    local num, suffix = moneyStr:match("([%d%.]+)%s*([%a]*)")
+    if not num then return 0 end
+    local val = tonumber(num) or 0
+    suffix = suffix:upper()
+    local multiplier = suffixMultipliers[suffix] or 1
+    return val * multiplier
+end
+
+-- Collect all youtubers and their MPS
+local entries = {}
+for _, base in ipairs(Bases:GetChildren()) do
+    local ignoreFolder = base:FindFirstChild("Ignore")
+    if ignoreFolder then
+        for _, youtuber in ipairs(ignoreFolder:GetChildren()) do
+            local hrp = youtuber:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local ta = hrp:FindFirstChild("ThingAttachment")
+                if ta then
+                    local gui = ta:FindFirstChild("YoutuberGui")
+                    if gui then
+                        local nameLabel = gui:FindFirstChild("YoutuberName", true)
+                        local moneyLabel = gui:FindFirstChild("MoneyPerSecond", true)
+                        if nameLabel and moneyLabel and moneyLabel:IsA("TextLabel") then
+                            local mpsText = moneyLabel.Text
+                            local mpsValue = parseMoneyString(mpsText)
+                            table.insert(entries, {
+                                name = nameLabel.Text,
+                                mpsText = mpsText,
+                                mpsValue = mpsValue
+                            })
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Sort descending by mpsValue
+table.sort(entries, function(a, b) return a.mpsValue > b.mpsValue end)
+
+-- Build display text for top 5
+local lines = {}
+for i = 1, math.min(5, #entries) do
+    local e = entries[i]
+    table.insert(lines, string.format("%d. %s — %s", i, e.name, e.mpsText))
+end
+local displayText = "Top Youtubers:\n" .. table.concat(lines, "\n")
+
+-- Create the Rayfield label
+local Label = Tab:CreateLabel(displayText, 4483362458, Color3.fromRGB(255, 255, 255), false)
