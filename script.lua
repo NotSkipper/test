@@ -85,7 +85,8 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local slotsFolder = workspace:WaitForChild("Bases"):WaitForChild("BaseTemplate"):WaitForChild("Slots")
+-- Adjust this to get the correct player's base
+local base = workspace:WaitForChild("Bases"):WaitForChild("BaseTemplate") -- Change this if needed
 
 local isCollecting = false
 
@@ -107,10 +108,39 @@ local function tweenTo(position)
     tween.Completed:Wait()
 end
 
+-- Get all slots from all floors
+local function getAllSlots()
+    local allSlots = {}
+
+    -- Floor 1 (base): has Slots directly
+    local floor1Slots = base:FindFirstChild("Slots")
+    if floor1Slots then
+        for _, slot in pairs(floor1Slots:GetChildren()) do
+            table.insert(allSlots, slot)
+        end
+    end
+
+    -- Floors 2 and 3: Slots inside Piso2 and Piso3
+    for _, floorName in pairs({"Piso2", "Piso3"}) do
+        local floor = base:FindFirstChild(floorName)
+        if floor then
+            local slots = floor:FindFirstChild("Slots")
+            if slots then
+                for _, slot in pairs(slots:GetChildren()) do
+                    table.insert(allSlots, slot)
+                end
+            end
+        end
+    end
+
+    return allSlots
+end
+
 -- Main loop function
 local function collectLoop()
     while isCollecting do
-        for _, slot in pairs(slotsFolder:GetChildren()) do
+        local allSlots = getAllSlots()
+        for _, slot in pairs(allSlots) do
             if isSlotOccupied(slot) then
                 local collectPart = slot:FindFirstChild("Collect")
                 if collectPart then
@@ -119,7 +149,7 @@ local function collectLoop()
                 end
             end
         end
-        for i = 1, 120 do -- Wait 2 minutes, but can stop early if toggle is turned off
+        for i = 1, 120 do -- Wait 2 minutes, can be interrupted
             if not isCollecting then break end
             wait(1)
         end
@@ -138,6 +168,7 @@ Tab:CreateToggle({
         end
     end,
 })
+
 
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
