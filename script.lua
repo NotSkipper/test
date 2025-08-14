@@ -890,12 +890,11 @@ local function parseMoneyString(moneyStr)
     if not num then return 0 end
     local val = tonumber(num) or 0
     suffix = suffix:upper()
-    local mul = suffixMultipliers[suffix] or 1
-    return val * mul
+    return val * (suffixMultipliers[suffix] or 1)
 end
 
--- Create the label once
-local labelObject = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.fromRGB(255, 255, 255), false)
+-- Create label once
+local topLabel = Tab:CreateLabel("Top Youtubers: Loading...", 4483362458, Color3.new(1,1,1), false)
 
 spawn(function()
     while true do
@@ -904,36 +903,32 @@ spawn(function()
         for _, base in ipairs(Bases:GetChildren()) do
             local ignore = base:FindFirstChild("Ignore")
             if ignore then
-                for _, y in ipairs(ignore:GetChildren()) do
-                    local hrp = y:FindFirstChild("HumanoidRootPart")
+                for _, youtuber in ipairs(ignore:GetChildren()) do
+                    local hrp = youtuber:FindFirstChild("HumanoidRootPart")
                     if hrp then
                         local ta = hrp:FindFirstChild("ThingAttachment")
                         if ta then
                             local gui = ta:FindFirstChild("YoutuberGui")
                             if gui then
-                                local nameLabelHolder = gui:FindFirstChild("YoutuberName")
-                                local moneyLabelHolder = gui:FindFirstChild("MoneyPerSecond")
-                                
-                                if nameLabelHolder and moneyLabelHolder then
-                                    local nameLabel = nameLabelHolder:FindFirstChild("Text")
-                                    local moneyLabel = moneyLabelHolder:FindFirstChild("Text")
-                                    
-                                    if nameLabel and moneyLabel and nameLabel:IsA("TextLabel") and moneyLabel:IsA("TextLabel") then
-                                        local val = parseMoneyString(moneyLabel.Text)
+                                local nameHolder = gui:FindFirstChild("YoutuberName")
+                                local moneyHolder = gui:FindFirstChild("MoneyPerSecond")
+                                if nameHolder and moneyHolder then
+                                    local nameText = nameHolder:FindFirstChild("Text")
+                                    local moneyText = moneyHolder:FindFirstChild("Text")
+                                    if nameText and moneyText and nameText:IsA("TextLabel") and moneyText:IsA("TextLabel") then
+                                        local val = parseMoneyString(moneyText.Text)
                                         table.insert(entries, {
-                                            name = nameLabel.Text,
-                                            text = moneyLabel.Text,
-                                            val = val
+                                            name = nameText.Text,
+                                            display = moneyText.Text,
+                                            val = val,
                                         })
-                                        print("Found:", nameLabel.Text, moneyLabel.Text)
+                                        print("Found:", nameText.Text, moneyText.Text)
                                     else
-                                        print("Found GUI but missing 'Text' labels in:", y.Name)
+                                        print("Missing inner TextLabel for", youtuber.Name)
                                     end
                                 else
-                                    print("Missing YoutuberName or MoneyPerSecond in:", y.Name)
+                                    print("Missing holder GUI for", youtuber.Name)
                                 end
-                            else
-                                print("No YoutuberGui in:", y.Name)
                             end
                         end
                     end
@@ -941,23 +936,24 @@ spawn(function()
             end
         end
 
-        local text
+        -- Build display
+        local displayText
         if #entries == 0 then
-            text = "Top Youtubers:\n— No data found —"
+            displayText = "Top Youtubers:\n— No data found —"
         else
             table.sort(entries, function(a, b) return a.val > b.val end)
             local lines = {}
             for i = 1, math.min(5, #entries) do
                 local e = entries[i]
-                table.insert(lines, string.format("%d. %s — %s", i, e.name, e.text))
+                table.insert(lines, string.format("%d. %s — %s", i, e.name, e.display))
             end
-            text = "Top Youtubers:\n" .. table.concat(lines, "\n")
+            displayText = "Top Youtubers:\n" .. table.concat(lines, "\n")
         end
 
-        -- Ensure UI renders
+        -- Ensure UI updates properly
         task.wait()
-        labelObject:Set(text)
+        topLabel:Set(displayText)
 
-        task.wait(5) -- Refresh every 5 seconds
+        task.wait(5)
     end
 end)
