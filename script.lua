@@ -230,6 +230,7 @@ local Button = Tab:CreateButton({
 })
 
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local Bases = workspace:WaitForChild("Bases")
 local VirtualUser = game:GetService("VirtualUser")
 
@@ -245,17 +246,22 @@ local function parseMoneyString(moneyStr)
     return val
 end
 
-local function findYourBase(player)
+local function findYourBase()
     for _, base in ipairs(Bases:GetChildren()) do
         local config = base:FindFirstChild("Configuration")
         if config and config:FindFirstChild("Player") and config.Player.Value == player then
+            print("Your base found:", base.Name)
             return base
         end
     end
+    warn("Your base not found!")
     return nil
 end
 
-local function findBestYoutuber(yourBase)
+local function findBestYoutuber()
+    local yourBase = findYourBase()
+    if not yourBase then return nil, nil end
+
     local bestYoutuberModel = nil
     local bestBase = nil
     local highestMPS = 0
@@ -274,36 +280,53 @@ local function findBestYoutuber(yourBase)
                                 local moneyLabel = youtuberGui:FindFirstChild("MoneyPerSecond", true)
                                 if moneyLabel and moneyLabel:IsA("TextLabel") then
                                     local val = parseMoneyString(moneyLabel.Text)
+                                    print("Found youtuber:", youtuberModel.Name, "with MPS:", moneyLabel.Text, "parsed:", val)
                                     if val > highestMPS then
                                         highestMPS = val
                                         bestYoutuberModel = youtuberModel
                                         bestBase = base
                                     end
+                                else
+                                    print("No MoneyPerSecond label for", youtuberModel.Name)
                                 end
+                            else
+                                print("No YoutuberGui found for", youtuberModel.Name)
                             end
+                        else
+                            print("No ThingAttachment found for", youtuberModel.Name)
                         end
+                    else
+                        print("No HumanoidRootPart for", youtuberModel.Name)
                     end
                 end
+            else
+                print("No Ignore folder in base:", base.Name)
             end
         end
+    end
+
+    if bestYoutuberModel then
+        print("Best youtuber is", bestYoutuberModel.Name, "with MPS:", highestMPS)
+    else
+        print("No suitable youtuber found.")
     end
 
     return bestBase, bestYoutuberModel
 end
 
-local function stealFromBestYoutuber(player)
+local function stealFromBestYoutuber()
     local character = player.Character or player.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
 
-    local yourBase = findYourBase(player)
-    if not yourBase then
-        warn("Your base not found!")
+    local bestBase, bestYoutuber = findBestYoutuber()
+    if not bestYoutuber or not bestBase then
+        warn("No youtuber to steal from found.")
         return
     end
 
-    local bestBase, bestYoutuber = findBestYoutuber(yourBase)
-    if not bestYoutuber or not bestBase then
-        warn("No youtuber to steal from found.")
+    local yourBase = findYourBase()
+    if not yourBase then
+        warn("Your base not found!")
         return
     end
 
@@ -324,7 +347,7 @@ local function stealFromBestYoutuber(player)
     hrp.CFrame = hrpChild.CFrame * CFrame.new(0, 5, 0)
     wait(0.3)
 
-    -- Interact with prompt the correct way
+    -- Interact with prompt
     VirtualUser:CaptureController()
     VirtualUser:ClickButton1(Vector2.new())
     wait(0.2)
@@ -335,10 +358,10 @@ local function stealFromBestYoutuber(player)
 
     wait(0.3)
 
-    -- Teleport back using fallback parts if PrimaryPart missing
     local teleportBackPart = yourBase.PrimaryPart or yourBase:FindFirstChild("HumanoidRootPart") or yourBase:FindFirstChildWhichIsA("BasePart")
 
     if teleportBackPart then
+        print("Returning to your base via", teleportBackPart.Name)
         hrp.CFrame = teleportBackPart.CFrame * CFrame.new(0, 5, 0)
     else
         warn("Your base has no suitable part to teleport to!")
@@ -351,8 +374,7 @@ end
 Tab:CreateButton({
     Name = "Steal Best Youtuber",
     Callback = function()
-        local player = Players.LocalPlayer
-        stealFromBestYoutuber(player)
+        stealFromBestYoutuber()
         Rayfield:Notify({
             Title = "Steal Best Youtuber",
             Content = "Attempted to steal from best youtuber!",
@@ -361,8 +383,6 @@ Tab:CreateButton({
         })
     end,
 })
-
-
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
