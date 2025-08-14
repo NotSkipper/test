@@ -79,6 +79,67 @@ local Toggle = Tab:CreateToggle({
    end,
 })
 
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local slotsFolder = workspace:WaitForChild("Bases"):WaitForChild("BaseTemplate"):WaitForChild("Slots")
+
+local isCollecting = false
+
+-- Function to check if a slot is occupied
+local function isSlotOccupied(slot)
+    local config = slot:FindFirstChild("Configuration")
+    if config then
+        local occupied = config:FindFirstChild("Occupied")
+        return occupied and occupied:IsA("BoolValue") and occupied.Value
+    end
+    return false
+end
+
+-- Function to tween to a position
+local function tweenTo(position)
+    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(position)})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- Main loop function
+local function collectLoop()
+    while isCollecting do
+        for _, slot in pairs(slotsFolder:GetChildren()) do
+            if isSlotOccupied(slot) then
+                local collectPart = slot:FindFirstChild("Collect")
+                if collectPart then
+                    tweenTo(collectPart.Position + Vector3.new(0, 5, 0))
+                    wait(1.5) -- Wait to ensure touch registers
+                end
+            end
+        end
+        for i = 1, 120 do -- Wait 2 minutes, but can stop early if toggle is turned off
+            if not isCollecting then break end
+            wait(1)
+        end
+    end
+end
+
+-- Rayfield Toggle UI
+Tab:CreateToggle({
+    Name = "Auto Collect Cash",
+    CurrentValue = false,
+    Flag = "AutoCollectCash",
+    Callback = function(state)
+        isCollecting = state
+        if state then
+            spawn(collectLoop)
+        end
+    end,
+})
+
+
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
 -- Create folder for ESPs
