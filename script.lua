@@ -167,6 +167,34 @@ Tab:CreateToggle({
     end,
 })
 
+local instantEnabled = false
+
+-- Function to make all prompts instant
+local function setPromptsInstant(state)
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = state and 0 or 1 -- 0 for instant, 1 is default
+        end
+    end
+end
+
+-- Optional: Keep listening for newly added prompts
+workspace.DescendantAdded:Connect(function(descendant)
+    if instantEnabled and descendant:IsA("ProximityPrompt") then
+        descendant.HoldDuration = 0
+    end
+end)
+
+-- Rayfield toggle (attach to your Tab/UI)
+Tab:CreateToggle({
+    Name = "Instant Interact (No Hold)",
+    CurrentValue = false,
+    Flag = "InstantInteractToggle",
+    Callback = function(state)
+        instantEnabled = state
+        setPromptsInstant(state)
+    end,
+})
 
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
