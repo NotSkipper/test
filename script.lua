@@ -234,6 +234,7 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local Bases = workspace:WaitForChild("Bases")
+local VirtualUser = game:GetService("VirtualUser")
 
 local instantEnabled = true
 
@@ -356,10 +357,20 @@ local Button = Tab:CreateButton({
 
         -- Teleport instantly to youtuber + 5 studs above
         hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
-        wait(0.1)
+        wait(0.2)
 
-        -- Improved prompt interaction
-        if prompt.Trigger then
+        -- Simulate VirtualUser click to help register prompt interaction
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new())
+
+        wait(0.2)
+
+        -- Improved prompt interaction with multiple fallback methods
+        if prompt.PromptButtonHoldBegan and prompt.PromptButtonHoldEnded then
+            prompt:PromptButtonHoldBegan()
+            wait(0.15)
+            prompt:PromptButtonHoldEnded()
+        elseif prompt.Trigger then
             prompt:Trigger(player)
         elseif prompt.Triggered then
             prompt.Triggered:Fire(player)
@@ -369,8 +380,11 @@ local Button = Tab:CreateButton({
             prompt:InputHoldEnd()
         end
 
+        wait(0.2)
+
         print("Stole from youtuber!")
 
+        -- Teleport back to your base + 5 studs above
         hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
 
         print("Returned to base.")
@@ -383,6 +397,7 @@ local Button = Tab:CreateButton({
         })
     end,
 })
+
 
 
 
