@@ -341,25 +341,22 @@ local Button = Tab:CreateButton({
             return
         end
 
-        -- Teleport instantly to youtuber + 5 studs above
-        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
-
-        wait(0.1)
-
-        -- Find the ProximityPrompt on the youtuber model or descendants
-        local prompt = nil
-        for _, descendant in ipairs(bestYoutuberModel:GetDescendants()) do
-            if descendant:IsA("ProximityPrompt") then
-                prompt = descendant
-                break
-            end
+        local attachment = targetHrp:FindFirstChild("Attachment")
+        if not attachment then
+            warn("HumanoidRootPart missing Attachment!")
+            return
         end
 
+        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
         if not prompt then
-            warn("No ProximityPrompt found on best youtuber model!")
+            warn("No ProximityPrompt found inside Attachment!")
             hrp.CFrame = yourBase.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
             return
         end
+
+        -- Teleport instantly to youtuber + 5 studs above
+        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 0)
+        wait(0.1)
 
         -- Improved prompt interaction
         if prompt.Trigger then
@@ -386,6 +383,7 @@ local Button = Tab:CreateButton({
         })
     end,
 })
+
 
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
