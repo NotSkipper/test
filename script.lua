@@ -79,9 +79,7 @@ local Toggle = Tab:CreateToggle({
    end,
 })
 
-local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
@@ -175,7 +173,6 @@ local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
 -- Create folder for ESPs
 local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
 local Youtubers = workspace:WaitForChild("Youtubers")
 
 local espFolder = CoreGui:FindFirstChild("YoutuberESP") or Instance.new("Folder", CoreGui)
@@ -307,7 +304,6 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 -- SETTINGS
-local Youtubers = workspace:WaitForChild("Youtubers")
 local boxESPEnabled = false
 local boxESPColor = Color3.fromRGB(255, 0, 0)
 local youtuberBoxes = {}
@@ -415,10 +411,9 @@ local ColorPicker = Tab:CreateColorPicker({
 })
 
 -- SERVICES
-local CoreGui   = game:GetService("CoreGui")
+local CoreGui = game:GetService("CoreGui")
 
 -- CONFIG
-local Youtubers = Workspace:WaitForChild("Youtubers")
 local ChamsFolder = CoreGui:FindFirstChild("YoutuberChams") or Instance.new("Folder", CoreGui)
 ChamsFolder.Name = "YoutuberChams"
 
@@ -498,10 +493,7 @@ local ChamsColorPicker = Tab:CreateColorPicker({
 })
 
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 
-local Youtubers = Workspace:WaitForChild("Youtubers")
 local ESPFolder = CoreGui:FindFirstChild("MoneyPerSecondESP") or Instance.new("Folder", CoreGui)
 ESPFolder.Name = "MoneyPerSecondESP"
 
