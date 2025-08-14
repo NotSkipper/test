@@ -945,5 +945,4 @@ for i = 1, math.min(5, #entries) do
 end
 local displayText = "Top Youtubers:\n" .. table.concat(lines, "\n")
 
--- Create the Rayfield label
-local Label = Tab:CreateLabel(displayText, 4483362458, Color3.fromRGB(255, 255, 255), false)
+local Paragraph = Tab:CreateParagraph({Title = "Best Youtubers", Content = displayText})
