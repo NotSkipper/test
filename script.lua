@@ -365,12 +365,8 @@ local Button = Tab:CreateButton({
 
         wait(0.2)
 
-        -- Improved prompt interaction with multiple fallback methods
-        if prompt.PromptButtonHoldBegan and prompt.PromptButtonHoldEnded then
-            prompt:PromptButtonHoldBegan()
-            wait(0.15)
-            prompt:PromptButtonHoldEnded()
-        elseif prompt.Trigger then
+        -- Improved prompt interaction with fallback methods
+        if prompt.Trigger then
             prompt:Trigger(player)
         elseif prompt.Triggered then
             prompt.Triggered:Fire(player)
@@ -397,9 +393,6 @@ local Button = Tab:CreateButton({
         })
     end,
 })
-
-
-
 
 local Tab = Window:CreateTab("ESP", 0) -- Title, Image
 
